@@ -20,14 +20,17 @@ public class StaticHandler extends SimpleChannelHandler<FullHttpRequest> {
     private static final Map<String,String>typeToHeaders=
             Map.of( ".html","text/html;charset=utf-8",
                     ".css","text/css;charset=utf-8",
-                    ".ico","image/vnd.microsoft.icon;charset=utf-8");
+                    ".ico","image/vnd.microsoft.icon;charset=utf-8",
+                    ".js","application/javascript;charset=utf-8",
+                    ".jpg","image/jpeg;charset=utf-8",
+                    ".png","image/png;charset=utf-8");
 
     public StaticHandler(String resourcesPath) {
         this.resourcesPath = resourcesPath;
     }
 
     @Override
-    protected void messageReceived(ChannelHandlerContext ctx, FullHttpRequest req) throws Exception {
+    protected void messageReceived(ChannelHandlerContext ctx, FullHttpRequest req) {
         String path = req.uri();
         if(!path.startsWith(resourcesPath)){
             return;
@@ -35,7 +38,7 @@ public class StaticHandler extends SimpleChannelHandler<FullHttpRequest> {
         handleResource(ctx,req,path.substring(1));
     }
 
-    private void handleResource(ChannelHandlerContext ctx, FullHttpRequest req, String path) throws IOException {
+    private void handleResource(ChannelHandlerContext ctx, FullHttpRequest req, String path){
         String url = Objects.requireNonNull(this.getClass().getResource("/")).getPath() + path;
         File file = new File(url);
         if(!file.exists()||file.isDirectory()){

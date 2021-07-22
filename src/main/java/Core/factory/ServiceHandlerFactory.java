@@ -4,7 +4,6 @@ import Core.annotation.ServiceHandlerMapping;
 import Core.template.ServiceHandler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.util.*;
@@ -27,7 +26,6 @@ public class ServiceHandlerFactory {
      */
     public ServiceHandlerFactory(String[]paths){
         String base= Objects.requireNonNull(this.getClass().getResource("/")).getPath();
-
         for(String p:paths){
             String locate=p.replaceAll("\\.","\\/");
             String fullPath=base+locate;
