@@ -1,18 +1,24 @@
 package Core.factory;
 
 import Core.annotation.ServiceHandlerMapping;
+import Core.annotation.Inject;
 import Core.template.ServiceHandler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import java.io.File;
 import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.lang.reflect.Field;
 import java.util.*;
+import java.util.jar.JarEntry;
+import java.util.jar.JarFile;
 
 
 public class ServiceHandlerFactory {
     private static final Logger log= LoggerFactory.getLogger(ServiceHandlerFactory.class);
     private final Map<String, ServiceHandler>requestMapping=new HashMap<>();
     private static ServiceHandlerFactory instance;
+    String base=  this.getClass().getProtectionDomain().getCodeSource().getLocation().getFile();
 
     public static void setInstance(ServiceHandlerFactory s){
         instance=s;
@@ -25,7 +31,14 @@ public class ServiceHandlerFactory {
      * instantiate the serviceHandlerFactory in the way of singleton
      */
     public ServiceHandlerFactory(String[]paths){
-        String base= Objects.requireNonNull(this.getClass().getResource("/")).getPath();
+        if(base.endsWith(".jar")){
+            dealWithJarProject(paths);
+        }else{
+            dealWithLocalProject(paths);
+        }
+    }
+
+    public void dealWithLocalProject(String[]paths){
         for(String p:paths){
             String locate=p.replaceAll("\\.","\\/");
             String fullPath=base+locate;
@@ -38,6 +51,41 @@ public class ServiceHandlerFactory {
         }
     }
 
+    public void dealWithJarProject(String[]paths){
+        List<String>classNames=new ArrayList<>();
+        try {
+            JarFile jar=new JarFile(new File(base));
+            Enumeration<JarEntry>e=jar.entries();
+            Set<String>set=new HashSet<>();
+            for(String p:paths){
+                p=p.replaceAll("\\.","/");
+                set.add(p+"/");
+            }
+            while (e.hasMoreElements()){
+                JarEntry next=e.nextElement();
+                String packageName=next.getName();
+                if(set.contains(packageName)){
+                    while (e.hasMoreElements()){ ;
+                       String match=e.nextElement().getName();
+                       String regex="^"+packageName+".*";
+                       if(match.matches(regex)){
+                           if(match.endsWith(".class")){
+                               match=match.substring(0,match.indexOf("."));
+                               match=match.replaceAll("/",".");
+                               classNames.add(match);
+                           }
+                       }else{
+                           break;
+                       }
+                    }
+                }
+            }
+            classInstantiation(classNames);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
     /**
      *
      * @param classNames the name of the classed that need to be instantiate
@@ -47,6 +95,18 @@ public class ServiceHandlerFactory {
             try {
                 ServiceHandler h=(ServiceHandler)Class.forName(s).
                         getDeclaredConstructor().newInstance();
+
+                //inject field
+                Field[]fields=h.getClass().getDeclaredFields();
+                for(Field f:fields){
+                    Inject inject=f.getAnnotation(Inject.class);
+                    if(inject!=null){
+                        f.setAccessible(true);
+                        f.set(h,SingletonObjInitFactory.getInstance().getSingletonInstance(f.getType()));
+                    }
+                }
+
+
                 ServiceHandlerMapping mapping=h.getClass().getAnnotation(ServiceHandlerMapping.class);
                 String requestURI=mapping.value();
                 requestMapping.put(requestURI,h);
@@ -99,5 +159,9 @@ public class ServiceHandlerFactory {
      */
     public ServiceHandler getServiceHandlerInstance(String requestURI){
         return requestMapping.getOrDefault(requestURI,null);
+    }
+
+    public static void main(String[] args) {
+        System.out.println("service/test.class".matches("^service.*"));
     }
 }

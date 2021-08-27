@@ -1,7 +1,9 @@
 package Core.net;
 
 import Core.annotation.ServiceHandlerPackage;
+import Core.annotation.SingletonObjHandlerPackage;
 import Core.annotation.StaticPath;
+import Core.factory.SingletonObjInitFactory;
 import Core.handlers.ServiceHandlerCenter;
 import Core.handlers.ReleaseResourceHandler;
 import Core.handlers.StaticHandler;
@@ -45,8 +47,12 @@ public  class NetService {
     private final String resourcesPath;
 
     public NetService(Class<?>c) {
+        SingletonObjHandlerPackage o=c.getAnnotation(SingletonObjHandlerPackage.class);
+        String[]paths=o.value();
+        SingletonObjInitFactory.setInstance(new SingletonObjInitFactory(paths));
+
         ServiceHandlerPackage s=c.getAnnotation(ServiceHandlerPackage.class);
-        String[]paths=s.value();
+        paths=s.value();
         ServiceHandlerFactory.setInstance(new ServiceHandlerFactory(paths));
 
         if(c.isAnnotationPresent(StaticPath.class)){
