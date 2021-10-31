@@ -1,4 +1,4 @@
-package Core.handlers;
+package Core.Handlers;
 
 import io.netty.buffer.Unpooled;
 import io.netty.channel.ChannelFutureListener;
@@ -7,7 +7,7 @@ import io.netty.handler.codec.http.*;
 import io.netty.util.CharsetUtil;
 
 public class HttpResponseHandler {
-    ChannelHandlerContext ctx;
+    public ChannelHandlerContext ctx;
 
     public HttpResponseHandler(ChannelHandlerContext ctx) {
         this.ctx = ctx;

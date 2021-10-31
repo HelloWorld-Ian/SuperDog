@@ -1,13 +1,15 @@
 package Core.Annotation;
 
+
 import java.lang.annotation.*;
 
 /**
- * define the directory path of the static resources
+ * deal with webSocket msg
  */
+
 @Target(ElementType.TYPE)
 @Retention(RetentionPolicy.RUNTIME)
 @Documented
-public @interface StaticPath {
+public @interface WebSocket {
     String value() default "";
 }

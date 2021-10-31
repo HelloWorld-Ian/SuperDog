@@ -1,9 +1,7 @@
-package Core.template;
+package Core.Handlers;
 
-import Core.Utils.FactoryUtils;
-import Core.annotation.ServiceHandlerMapping;
-import Core.handlers.HttpRequestHandler;
-import Core.handlers.HttpResponseHandler;
+import Core.Factory.FactoryUtils;
+import Core.Annotation.ServiceHandlerMapping;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.handler.codec.http.FullHttpRequest;
 import io.netty.handler.codec.http.HttpMethod;

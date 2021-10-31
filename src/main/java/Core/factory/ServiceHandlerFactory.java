@@ -1,10 +1,12 @@
-package Core.factory;
+package Core.Factory;
 
-import Core.annotation.ServiceHandlerMapping;
-import Core.annotation.Inject;
-import Core.template.ServiceHandler;
+import Core.Annotation.Inject;
+import Core.Annotation.ServiceHandlerMapping;
+import Core.Exception.DuplicateMappingException;
+import Core.Handlers.ServiceHandler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -109,6 +111,15 @@ public class ServiceHandlerFactory {
 
                 ServiceHandlerMapping mapping=h.getClass().getAnnotation(ServiceHandlerMapping.class);
                 String requestURI=mapping.value();
+
+                if(requestURI.equals("/")){
+                    requestURI="";
+                }
+
+                if(requestMapping.containsKey(requestURI)){
+                    throw new DuplicateMappingException();
+                }
+
                 requestMapping.put(requestURI,h);
             } catch (Exception e) {
                 e.printStackTrace();
@@ -161,7 +172,4 @@ public class ServiceHandlerFactory {
         return requestMapping.getOrDefault(requestURI,null);
     }
 
-    public static void main(String[] args) {
-        System.out.println("service/test.class".matches("^service.*"));
-    }
 }

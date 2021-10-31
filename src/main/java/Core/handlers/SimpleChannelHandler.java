@@ -1,7 +1,8 @@
-package Core.handlers;
+package Core.Handlers;
 
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.SimpleChannelInboundHandler;
+import io.netty.util.ReferenceCountUtil;
 
 @SuppressWarnings(value = "unchecked")
 public abstract class SimpleChannelHandler<I> extends SimpleChannelInboundHandler<I> {
@@ -11,7 +12,7 @@ public abstract class SimpleChannelHandler<I> extends SimpleChannelInboundHandle
             this.messageReceived(ctx, (I)msg);
             ctx.fireChannelRead(msg);
         } else {
-            throw new Exception("type do not match");
+            ReferenceCountUtil.release(msg);
         }
     }
 }

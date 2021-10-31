@@ -1,24 +1,30 @@
-package Core.factory;
+package Core.Factory;
+
+import Core.Annotation.Inject;
+import Core.Annotation.Singleton;
+import Core.Annotation.SingletonObjHandler;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
+import java.lang.reflect.Type;
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
-
-import Core.annotation.Inject;
-import Core.annotation.Singleton;
-import Core.annotation.SingletonObjHandler;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public class SingletonObjInitFactory {
     private Logger log= LoggerFactory.getLogger(SingletonObjInitFactory.class);
     private static SingletonObjInitFactory Instance;
-    Map<Class<?>,Object>factory=new HashMap<>();
+
+    Map<Class<?>,Object>factory=new ConcurrentHashMap<>();
+    Map<String,List<Object>>genericClasses=new ConcurrentHashMap<>();
+    Map<String,List<Object>> genericInterfaces =new ConcurrentHashMap<>();
+
     List<String>className=new ArrayList<>();
     String base= this.getClass().getProtectionDomain().getCodeSource().getLocation().getFile();
 
@@ -74,6 +80,23 @@ public class SingletonObjInitFactory {
 
                         //save the singleton
                         factory.put(instance.getClass(),instance);
+
+                        //save the genericClass mapping and genericInterfaces mapping
+                        String genericClassName=instance.getClass().getGenericSuperclass().getTypeName();
+                        if(!genericClasses.containsKey(genericClassName)){
+                            genericClasses.put(genericClassName,new ArrayList<>());
+                        }
+                        genericClasses.get(genericClassName).add(instance);
+
+                        Type[]interfaces=instance.getClass().getGenericInterfaces();
+                        for (Type t:interfaces){
+                            String genericInterfaceName=t.getTypeName();
+                            if(!genericInterfaces.containsKey(genericInterfaceName)){
+                                genericInterfaces.put(genericInterfaceName,new ArrayList<>());
+                            }
+                            genericInterfaces.get(genericInterfaceName).add(instance);
+                        }
+
                     }
                 }
             } catch (Exception e) {
@@ -174,21 +197,32 @@ public class SingletonObjInitFactory {
     }
 
     private void addClassName(File f,String context,boolean isDirectory){
-                String s=f.getName();
-                if(f.exists()) {
-                    if(isDirectory) {
-                        if (s.endsWith(".class")) {
-                            String fullName = context + "." + f.getName().replaceAll("\\.class", "");
-                            className.add(fullName);
-                        }
-                    }else{
-                            className.add(context.replaceAll("\\.class",""));
-                    }
-                }
+        String s=f.getName();
+        if(f.exists()) { 
+            if(isDirectory) { 
+                if (s.endsWith(".class")) { 
+                    String fullName = context + "." + f.getName().replaceAll("\\.class", "");
+                    className.add(fullName); 
+                } 
+            }else{ 
+                className.add(context.replaceAll("\\.class","")); 
+            } 
+        }
     }
 
     public Object getSingletonInstance(Class<?>c){
+        if(!SingletonObjInitFactory.getInstance().factory.containsKey(c)){
+            return null;
+        }
         return SingletonObjInitFactory.getInstance().factory.get(c);
+    }
+
+    public List<Object> getClassesSubs(String typeName){
+        return SingletonObjInitFactory.getInstance().genericClasses.get(typeName);
+    }
+
+    public List<Object> getInterfaceImpls(String typeName){
+        return SingletonObjInitFactory.getInstance().genericInterfaces.get(typeName);
     }
 
 }

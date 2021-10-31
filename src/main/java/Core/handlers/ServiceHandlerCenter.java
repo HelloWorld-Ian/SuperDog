@@ -1,13 +1,18 @@
-package Core.handlers;
+package Core.Handlers;
 
-import Core.template.ServiceHandler;
+import Core.Factory.ServiceHandlerFactory;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.handler.codec.http.FullHttpRequest;
-import Core.factory.ServiceHandlerFactory;
 
 public class ServiceHandlerCenter extends SimpleChannelHandler<FullHttpRequest> {
     @Override
     protected void messageReceived(ChannelHandlerContext cxt, FullHttpRequest req) throws Exception {
+
+        if(req.headers().contains("Upgrade")&&"websocket".contentEquals(req.headers().get("Upgrade"))){
+            return;
+        }
+
+
         String name= req.uri();
         String[] parts=name.split("/");
         StringBuilder combine= new StringBuilder();

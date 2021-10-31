@@ -1,12 +1,15 @@
-package Core.net;
+package Core.Net;
 
-import Core.annotation.ServiceHandlerPackage;
-import Core.annotation.SingletonObjHandlerPackage;
-import Core.annotation.StaticPath;
-import Core.factory.SingletonObjInitFactory;
-import Core.handlers.ServiceHandlerCenter;
-import Core.handlers.ReleaseResourceHandler;
-import Core.handlers.StaticHandler;
+import Core.Annotation.ServiceHandlerPackage;
+import Core.Annotation.SingletonObjHandlerPackage;
+import Core.Annotation.StaticPath;
+import Core.Annotation.WelcomePage;
+import Core.Factory.ServiceHandlerFactory;
+import Core.Factory.SingletonObjInitFactory;
+import Core.Handlers.ReleaseResourceHandler;
+import Core.Handlers.ServiceHandlerCenter;
+import Core.Handlers.StaticHandler;
+import Core.Handlers.WebSocketHandler;
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.channel.*;
 import io.netty.channel.nio.NioEventLoopGroup;
@@ -14,11 +17,12 @@ import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
 import io.netty.handler.codec.http.HttpObjectAggregator;
 import io.netty.handler.codec.http.HttpServerCodec;
+import io.netty.handler.stream.ChunkedWriteHandler;
 import io.netty.handler.timeout.IdleStateHandler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
 import java.util.concurrent.TimeUnit;
-import Core.factory.ServiceHandlerFactory;
 
 
 //知识点:
@@ -40,26 +44,64 @@ import Core.factory.ServiceHandlerFactory;
 //                        简单来讲：option作用于bossGroup,childOption作用于workerGroup
 
 
-
 public  class NetService {
 
     private final Logger log= LoggerFactory.getLogger(NetService.class);
     private final String resourcesPath;
 
-    public NetService(Class<?>c) {
-        SingletonObjHandlerPackage o=c.getAnnotation(SingletonObjHandlerPackage.class);
-        String[]paths=o.value();
-        SingletonObjInitFactory.setInstance(new SingletonObjInitFactory(paths));
+    public static String welcome;
+    public static int port;
 
-        ServiceHandlerPackage s=c.getAnnotation(ServiceHandlerPackage.class);
-        paths=s.value();
-        ServiceHandlerFactory.setInstance(new ServiceHandlerFactory(paths));
+    public NetService(Class<?>c) {
+
+        initSingletonObjHandler(c);
+        initServiceHandler(c);
 
         if(c.isAnnotationPresent(StaticPath.class)){
             resourcesPath=c.getAnnotation(StaticPath.class).value();
         }else{
             resourcesPath="";
         }
+
+        if(c.isAnnotationPresent(WelcomePage.class)){
+            welcome=c.getAnnotation(WelcomePage.class).value();
+        }else{
+            welcome=null;
+        }
+    }
+
+
+    /**
+     * <p>
+     *     init the serviceHandler which create ServiceHandler
+     *     ServiceHandler is the class mapping the http request
+     * </p>
+     *
+     * @param c basic class
+     */
+    public void initServiceHandler(Class<?>c){
+        ServiceHandlerPackage s=c.getAnnotation(ServiceHandlerPackage.class);
+        if(s==null){
+            return;
+        }
+        String[] paths=s.value();
+        ServiceHandlerFactory.setInstance(new ServiceHandlerFactory(paths));
+    }
+
+    /**
+     * <p>
+     *     init the singletonObjHandler which create singleton
+     * </p>
+     *
+     * @param c basic class
+     */
+    public void initSingletonObjHandler(Class<?>c){
+        SingletonObjHandlerPackage o=c.getAnnotation(SingletonObjHandlerPackage.class);
+        if(o==null){
+            return;
+        }
+        String[]paths=o.value();
+        SingletonObjInitFactory.setInstance(new SingletonObjInitFactory(paths));
     }
 
     /**
@@ -70,7 +112,7 @@ public  class NetService {
      * @param portTmp the port that the server is on
      */
     public void startServer(int portTmp){
-        int port = NetUtils.getPort(portTmp);
+        port = NetUtils.getPort(portTmp);
         //开启一个服务器实例
         ServerBootstrap server=new ServerBootstrap();
 
@@ -90,6 +132,10 @@ public  class NetService {
                 p.addLast(new IdleStateHandler(0, 0, 30 * 3, TimeUnit.SECONDS));
                 p.addLast(new HttpServerCodec());
                 p.addLast(new HttpObjectAggregator(5 * 1024 * 1024));
+                p.addLast("http-chunked", new ChunkedWriteHandler());
+
+                //deal with websocket
+                p.addLast(new WebSocketHandler());
 
                 //deal with static resources request
                 p.addLast(new StaticHandler(resourcesPath));
@@ -99,6 +145,7 @@ public  class NetService {
 
                 //release the resources
                 p.addLast(new ReleaseResourceHandler());
+
             }
         }).childOption(ChannelOption.SO_KEEPALIVE,true)   //开启心跳机制
                 .option(ChannelOption.SO_BACKLOG, 1024);  //等待队列最大等待量

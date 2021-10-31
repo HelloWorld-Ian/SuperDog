@@ -1,4 +1,4 @@
-package Core.handlers;
+package Core.Handlers;
 
 import io.netty.handler.codec.http.FullHttpRequest;
 

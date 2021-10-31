@@ -1,7 +1,6 @@
-package Core.Utils;
+package Core.Factory;
 
 import java.lang.reflect.Field;
-import java.lang.reflect.Type;
 
 public class FactoryUtils {
     public static void set(Field f,Object instance,Object value){
